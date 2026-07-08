@@ -1,6 +1,7 @@
 {
   "keyword": "catholic prayer cards",
   "modelVersion": "Amazon V3",
+  "hasHistory": true,
   "keywordMeta": {
     "keyword": "catholic prayer cards",
     "translation": "天主教祈祷卡",
@@ -35,7 +36,15 @@
     "zeroReviewWithSales": 0,
     "positiveGrowthCount": 20
   },
-  "totalScore": 67.5,
+  "totalScore": 70.5,
+  "rawTotalScore": 70.5,
+  "scoreAdjustment": {
+    "rawTotalScore": 70.5,
+    "totalScore": 70.5,
+    "adjusted": false,
+    "penalty": 0,
+    "cap": 100
+  },
   "verdict": {
     "label": "可以做",
     "summary": "中等竞争，适合测试款与细分切入",
@@ -62,7 +71,9 @@
           "tier": "良好",
           "score": 4,
           "max": 5,
-          "detail": ""
+          "detail": "",
+          "source": "direct",
+          "sourceLabel": "直接数据"
         },
         {
           "name": "月购买量",
@@ -70,7 +81,9 @@
           "tier": "一般",
           "score": 4,
           "max": 6,
-          "detail": ""
+          "detail": "",
+          "source": "direct",
+          "sourceLabel": "直接数据"
         },
         {
           "name": "购买率",
@@ -78,7 +91,9 @@
           "tier": "较差",
           "score": 2,
           "max": 5,
-          "detail": ""
+          "detail": "",
+          "source": "direct",
+          "sourceLabel": "直接数据"
         },
         {
           "name": "ABA趋势",
@@ -86,7 +101,9 @@
           "tier": "持续下降",
           "score": 0,
           "max": 4,
-          "detail": "ABA 月排名 114,078 → 周排名 122,287"
+          "detail": "ABA 月排名 114,078 → 周排名 122,287",
+          "source": "inferred",
+          "sourceLabel": "间接推算"
         }
       ]
     },
@@ -104,7 +121,9 @@
           "tier": "良好",
           "score": 7,
           "max": 8,
-          "detail": ""
+          "detail": "",
+          "source": "direct",
+          "sourceLabel": "直接数据"
         },
         {
           "name": "商品数",
@@ -112,7 +131,9 @@
           "tier": "一般",
           "score": 1,
           "max": 3,
-          "detail": ""
+          "detail": "",
+          "source": "direct",
+          "sourceLabel": "直接数据"
         }
       ],
       "rawScore": 8,
@@ -124,7 +145,7 @@
       "score": 13,
       "max": 20,
       "metric": "Top10 销量占比 25.1%",
-      "detail": "Top3 品牌销量占比 35.2%",
+      "detail": "Top3 品牌销量占比 35.2%（Search 样本估算）",
       "subMetrics": [
         {
           "name": "Top10销量占比",
@@ -132,7 +153,9 @@
           "tier": "良好",
           "score": 6,
           "max": 7,
-          "detail": ""
+          "detail": "",
+          "source": "calculated",
+          "sourceLabel": "样本计算"
         },
         {
           "name": "Review中位数",
@@ -140,7 +163,9 @@
           "tier": "一般",
           "score": 3,
           "max": 5,
-          "detail": ""
+          "detail": "",
+          "source": "calculated",
+          "sourceLabel": "样本计算"
         },
         {
           "name": "平均Review",
@@ -148,7 +173,9 @@
           "tier": "较差",
           "score": 1,
           "max": 4,
-          "detail": ""
+          "detail": "",
+          "source": "calculated",
+          "sourceLabel": "样本计算"
         },
         {
           "name": "Top3品牌销量占比",
@@ -156,7 +183,9 @@
           "tier": "良好",
           "score": 3,
           "max": 4,
-          "detail": ""
+          "detail": "",
+          "source": "calculated",
+          "sourceLabel": "样本计算"
         }
       ]
     },
@@ -174,7 +203,9 @@
           "tier": "优秀",
           "score": 5,
           "max": 5,
-          "detail": ""
+          "detail": "",
+          "source": "direct",
+          "sourceLabel": "直接数据"
         },
         {
           "name": "SPR",
@@ -182,7 +213,9 @@
           "tier": "良好",
           "score": 4,
           "max": 5,
-          "detail": ""
+          "detail": "",
+          "source": "direct",
+          "sourceLabel": "直接数据"
         }
       ]
     },
@@ -200,7 +233,9 @@
           "tier": "优秀",
           "score": 5,
           "max": 5,
-          "detail": ""
+          "detail": "",
+          "source": "calculated",
+          "sourceLabel": "样本计算"
         },
         {
           "name": "PPC",
@@ -208,7 +243,9 @@
           "tier": "优秀",
           "score": 5,
           "max": 5,
-          "detail": ""
+          "detail": "",
+          "source": "direct",
+          "sourceLabel": "直接数据"
         },
         {
           "name": "平均评分",
@@ -216,42 +253,102 @@
           "tier": "一般",
           "score": 3,
           "max": 5,
-          "detail": ""
+          "detail": "",
+          "source": "calculated",
+          "sourceLabel": "样本计算"
         }
       ]
     },
     {
       "key": "marketStability",
       "name": "市场稳定性",
-      "score": 8,
+      "score": 11,
       "max": 15,
-      "metric": "20/48 个 listing 销量正增长",
-      "detail": "缺少季节性数据，按稳定处理；BSR 波动较大",
+      "metric": "近4周均搜索量 2,761 vs 前9周 1,976（变化 39.7%）",
+      "detail": "月际波动系数 0.15，峰谷比 1.8x（230 周 KeywordHistory）；BSR 波动较大",
       "subMetrics": [
         {
           "name": "搜索趋势90天",
-          "value": "20/48 个 listing 销量正增长",
-          "tier": "稳定",
-          "score": 3,
+          "value": "近4周均搜索量 2,761 vs 前9周 1,976（变化 39.7%）",
+          "tier": "持续上涨",
+          "score": 5,
           "max": 5,
-          "detail": "20/48 个 listing 销量正增长"
+          "detail": "近4周均搜索量 2,761 vs 前9周 1,976（变化 39.7%）",
+          "source": "history",
+          "sourceLabel": "历史推算"
         },
         {
           "name": "季节性",
-          "value": "缺少季节性数据，按稳定处理",
-          "tier": "稳定",
-          "score": 3,
+          "value": "月际波动系数 0.15，峰谷比 1.8x（230 周 KeywordHistory）",
+          "tier": "轻微波动",
+          "score": 4,
           "max": 5,
-          "detail": "缺少季节性数据，按稳定处理"
+          "detail": "月际波动系数 0.15，峰谷比 1.8x（230 周 KeywordHistory）",
+          "source": "history",
+          "sourceLabel": "历史推算"
         },
         {
           "name": "BSR波动",
-          "value": "波动较大",
+          "value": "基于 Top10 样本大类 BSR 增长率，变异系数 1.23",
           "tier": "波动较大",
           "score": 2,
           "max": 5,
-          "detail": ""
+          "detail": "基于 Top10 样本大类 BSR 增长率，变异系数 1.23",
+          "source": "calculated",
+          "sourceLabel": "样本计算"
         }
+      ]
+    }
+  ],
+  "dataSourceSummary": [
+    {
+      "source": "direct",
+      "key": "direct",
+      "label": "直接数据",
+      "description": "来自 KeywordMining / Search 原始字段",
+      "metrics": [
+        "月搜索量",
+        "月购买量",
+        "购买率",
+        "需供比",
+        "商品数",
+        "标题密度",
+        "SPR",
+        "PPC"
+      ]
+    },
+    {
+      "source": "calculated",
+      "key": "calculated",
+      "label": "样本计算",
+      "description": "基于 Search 表样本聚合计算，不代表全市场",
+      "metrics": [
+        "Top10销量占比",
+        "Review中位数",
+        "平均Review",
+        "Top3品牌销量占比",
+        "平均售价",
+        "平均评分",
+        "BSR波动"
+      ]
+    },
+    {
+      "source": "history",
+      "key": "history",
+      "label": "历史推算",
+      "description": "基于 KeywordHistory 周搜索量历史数据计算",
+      "metrics": [
+        "搜索趋势90天",
+        "季节性"
+      ]
+    },
+    {
+      "source": "inferred",
+      "key": "inferred",
+      "label": "间接推算",
+      "description": "由多个关联字段推算，非直接观测值",
+      "metrics": [
+        "ABA趋势"
       ]
     }
   ],

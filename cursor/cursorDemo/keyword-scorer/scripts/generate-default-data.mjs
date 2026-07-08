@@ -19,14 +19,16 @@ const keywordPath = join(
   'KeywordMining-US-catholic-prayer-cards-Last-30-days-113680(1).xlsx',
 )
 const searchPath = join(projectRoot, 'Search(catholic-prayer-cards)-59-US-20260704.xlsx')
+const historyPath = join(projectRoot, 'KeywordHistory-catholic prayer cards-US-20260707.xlsx')
 
 const keywordRows = readSheetRows(keywordPath)
 const searchRows = readSheetRows(searchPath)
-const result = buildAnalysis(keywordRows[0], searchRows)
+const historyRows = readSheetRows(historyPath)
+const result = buildAnalysis(keywordRows[0], searchRows, historyRows)
 
 const outPath = join(__dirname, '../public/data/default-analysis.json')
 writeFileSync(outPath, JSON.stringify(result, null, 2))
 
 console.log(`Written to ${outPath}`)
 console.log(`Total score: ${result.totalScore} · ${result.verdict.label}`)
-if (result.veto.triggered) console.log(`Veto: ${result.veto.reasons.join('; ')}`)
+console.log('Data sources:', result.dataSourceSummary.map((g) => `${g.label}(${g.metrics.length})`).join(', '))

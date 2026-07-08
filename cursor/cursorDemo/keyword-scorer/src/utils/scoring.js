@@ -1,3 +1,6 @@
+import { analyzeSearchTrendFromHistory, analyzeSeasonalityFromHistory } from './keywordHistory.js'
+import { buildDataSourceSummary, getSourceMeta } from './dataSources.js'
+
 export function toNumber(value) {
   if (value === null || value === undefined || value === '') return 0
   if (typeof value === 'number') return Number.isFinite(value) ? value : 0
@@ -70,7 +73,7 @@ export function scorePurchaseRate(rate) {
 
 export function scoreAbaTrend(abaMonth, abaWeek) {
   if (!abaMonth || !abaWeek) {
-    return { label: '稳定', score: 2, detail: 'ABA 数据不足，按稳定处理' }
+    return { label: '稳定', score: 2, detail: 'ABA 数据不足，按稳定处理', source: 'estimated' }
   }
   const improvement = (abaMonth - abaWeek) / abaMonth
   const tier = pickTier(improvement, [
@@ -82,6 +85,7 @@ export function scoreAbaTrend(abaMonth, abaWeek) {
   ])
   return {
     ...tier,
+    source: 'inferred',
     detail: `ABA 月排名 ${abaMonth.toLocaleString()} → 周排名 ${abaWeek.toLocaleString()}`,
   }
 }
@@ -209,34 +213,41 @@ export function scoreSearchTrend90d(growthRates) {
   ])
   return {
     ...tier,
-    detail: `${growthRates.filter((growth) => toNumber(growth) > 0).length}/${growthRates.length || 0} 个 listing 销量正增长`,
+    source: 'estimated',
+    detail: `${growthRates.filter((growth) => toNumber(growth) > 0).length}/${growthRates.length || 0} 个 listing 销量正增长（无 KeywordHistory 时的替代估算）`,
   }
 }
 
-export function scoreSeasonality() {
+export function scoreSeasonalityFallback() {
   return {
     label: '稳定',
     score: 3,
-    detail: '缺少季节性数据，按稳定处理',
+    source: 'estimated',
+    detail: '缺少 KeywordHistory，按稳定估算',
   }
 }
 
 export function scoreBsrVolatility(bsrGrowthRates) {
   const rates = bsrGrowthRates.map(toNumber).filter((value) => Number.isFinite(value))
   if (rates.length < 2) {
-    return { label: '一般', score: 3, detail: 'BSR 样本不足，按一般处理' }
+    return { label: '一般', score: 3, detail: 'BSR 样本不足，按一般估算', source: 'estimated' }
   }
   const mean = average(rates)
   const variance = rates.reduce((sum, value) => sum + (value - mean) ** 2, 0) / rates.length
   const stdDev = Math.sqrt(variance)
   const cv = mean ? Math.abs(stdDev / mean) : stdDev
-  return pickTier(cv, [
+  const tier = pickTier(cv, [
     { label: '很稳定', test: (v) => v < 0.3, score: 5 },
     { label: '较稳定', test: (v) => v < 0.6, score: 4 },
     { label: '一般', test: (v) => v < 1, score: 3 },
     { label: '波动较大', test: (v) => v < 1.5, score: 2 },
     { label: '波动剧烈', test: () => true, score: 0 },
   ])
+  return {
+    ...tier,
+    source: 'calculated',
+    detail: `基于 Top10 样本大类 BSR 增长率，变异系数 ${cv.toFixed(2)}`,
+  }
 }
 
 export function getVerdict(totalScore) {
@@ -315,7 +326,9 @@ export function applyVetoAdjustment(rawScore, veto) {
   }
 }
 
-function buildSubMetric(name, valueText, tierResult, max) {
+function buildSubMetric(name, valueText, tierResult, max, source = 'direct') {
+  const sourceKey = tierResult.source || source
+  const sourceMeta = getSourceMeta(sourceKey)
   return {
     name,
     value: valueText,
@@ -323,10 +336,12 @@ function buildSubMetric(name, valueText, tierResult, max) {
     score: tierResult.score,
     max,
     detail: tierResult.detail || '',
+    source: sourceKey,
+    sourceLabel: sourceMeta.label,
   }
 }
 
-export function buildAnalysis(keywordRow, searchRows) {
+export function buildAnalysis(keywordRow, searchRows, historyRows = []) {
   const keywordMeta = {
     keyword: keywordRow['关键词'] || '',
     translation: keywordRow['关键词翻译'] || '',
@@ -441,8 +456,10 @@ export function buildAnalysis(keywordRow, searchRows) {
   const averageRatingTier = scoreAverageRating(averageRating)
   const profitRaw = averagePriceTier.score + ppcTier.score + averageRatingTier.score
 
-  const searchTrendTier = scoreSearchTrend90d(growthRates)
-  const seasonalityTier = scoreSeasonality()
+  const searchTrendTier =
+    analyzeSearchTrendFromHistory(historyRows) || scoreSearchTrend90d(growthRates)
+  const seasonalityTier =
+    analyzeSeasonalityFromHistory(historyRows) || scoreSeasonalityFallback()
   const bsrVolatilityTier = scoreBsrVolatility(bsrGrowthRates)
   const stabilityRaw = searchTrendTier.score + seasonalityTier.score + bsrVolatilityTier.score
 
@@ -455,10 +472,10 @@ export function buildAnalysis(keywordRow, searchRows) {
       metric: `月搜索量 ${keywordMeta.monthlySearch.toLocaleString()}`,
       detail: `月购买量 ${keywordMeta.monthlyPurchase.toLocaleString()}，购买率 ${toPercentRate(keywordMeta.purchaseRate).toFixed(1)}%`,
       subMetrics: [
-        buildSubMetric('月搜索量', keywordMeta.monthlySearch.toLocaleString(), monthlySearchTier, 5),
-        buildSubMetric('月购买量', keywordMeta.monthlyPurchase.toLocaleString(), monthlyPurchaseTier, 6),
-        buildSubMetric('购买率', `${toPercentRate(keywordMeta.purchaseRate).toFixed(1)}%`, purchaseRateTier, 5),
-        buildSubMetric('ABA趋势', abaTrendTier.detail || `${keywordMeta.abaMonth}→${keywordMeta.abaWeek}`, abaTrendTier, 4),
+        buildSubMetric('月搜索量', keywordMeta.monthlySearch.toLocaleString(), monthlySearchTier, 5, 'direct'),
+        buildSubMetric('月购买量', keywordMeta.monthlyPurchase.toLocaleString(), monthlyPurchaseTier, 6, 'direct'),
+        buildSubMetric('购买率', `${toPercentRate(keywordMeta.purchaseRate).toFixed(1)}%`, purchaseRateTier, 5, 'direct'),
+        buildSubMetric('ABA趋势', abaTrendTier.detail || `${keywordMeta.abaMonth}→${keywordMeta.abaWeek}`, abaTrendTier, 4, 'inferred'),
       ],
     },
     {
@@ -469,8 +486,8 @@ export function buildAnalysis(keywordRow, searchRows) {
       metric: `需供比 ${keywordMeta.supplyDemandRatio.toFixed(2)}`,
       detail: `商品数 ${keywordMeta.productCount.toLocaleString()}`,
       subMetrics: [
-        buildSubMetric('需供比', keywordMeta.supplyDemandRatio.toFixed(2), supplyDemandTier, 8),
-        buildSubMetric('商品数', keywordMeta.productCount.toLocaleString(), productCountTier, 3),
+        buildSubMetric('需供比', keywordMeta.supplyDemandRatio.toFixed(2), supplyDemandTier, 8, 'direct'),
+        buildSubMetric('商品数', keywordMeta.productCount.toLocaleString(), productCountTier, 3, 'direct'),
       ],
       rawScore: supplyRaw,
       rawMax: 11,
@@ -481,12 +498,12 @@ export function buildAnalysis(keywordRow, searchRows) {
       score: competitionRaw,
       max: 20,
       metric: `Top10 销量占比 ${top10SalesPct.toFixed(1)}%`,
-      detail: `Top3 品牌销量占比 ${top3BrandSalesPct.toFixed(1)}%`,
+      detail: `Top3 品牌销量占比 ${top3BrandSalesPct.toFixed(1)}%（Search 样本估算）`,
       subMetrics: [
-        buildSubMetric('Top10销量占比', `${top10SalesPct.toFixed(1)}%`, top10ShareTier, 7),
-        buildSubMetric('Review中位数', Math.round(medianReviews).toLocaleString(), reviewMedianTier, 5),
-        buildSubMetric('平均Review', Math.round(averageReviews).toLocaleString(), averageReviewTier, 4),
-        buildSubMetric('Top3品牌销量占比', `${top3BrandSalesPct.toFixed(1)}%`, top3BrandTier, 4),
+        buildSubMetric('Top10销量占比', `${top10SalesPct.toFixed(1)}%`, top10ShareTier, 7, 'calculated'),
+        buildSubMetric('Review中位数', Math.round(medianReviews).toLocaleString(), reviewMedianTier, 5, 'calculated'),
+        buildSubMetric('平均Review', Math.round(averageReviews).toLocaleString(), averageReviewTier, 4, 'calculated'),
+        buildSubMetric('Top3品牌销量占比', `${top3BrandSalesPct.toFixed(1)}%`, top3BrandTier, 4, 'calculated'),
       ],
     },
     {
@@ -497,8 +514,8 @@ export function buildAnalysis(keywordRow, searchRows) {
       metric: `标题密度 ${keywordMeta.titleDensity}`,
       detail: `SPR ${keywordMeta.spr}`,
       subMetrics: [
-        buildSubMetric('标题密度', String(keywordMeta.titleDensity), titleDensityTier, 5),
-        buildSubMetric('SPR', String(keywordMeta.spr), sprTier, 5),
+        buildSubMetric('标题密度', String(keywordMeta.titleDensity), titleDensityTier, 5, 'direct'),
+        buildSubMetric('SPR', String(keywordMeta.spr), sprTier, 5, 'direct'),
       ],
     },
     {
@@ -509,9 +526,9 @@ export function buildAnalysis(keywordRow, searchRows) {
       metric: `平均售价 $${averagePrice.toFixed(2)}`,
       detail: `PPC $${keywordMeta.ppc.toFixed(2)}，平均评分 ${averageRating.toFixed(2)}`,
       subMetrics: [
-        buildSubMetric('平均售价', `$${averagePrice.toFixed(2)}`, averagePriceTier, 5),
-        buildSubMetric('PPC', `$${keywordMeta.ppc.toFixed(2)}`, ppcTier, 5),
-        buildSubMetric('平均评分', averageRating.toFixed(2), averageRatingTier, 5),
+        buildSubMetric('平均售价', `$${averagePrice.toFixed(2)}`, averagePriceTier, 5, 'calculated'),
+        buildSubMetric('PPC', `$${keywordMeta.ppc.toFixed(2)}`, ppcTier, 5, 'direct'),
+        buildSubMetric('平均评分', averageRating.toFixed(2), averageRatingTier, 5, 'calculated'),
       ],
     },
     {
@@ -524,10 +541,14 @@ export function buildAnalysis(keywordRow, searchRows) {
       subMetrics: [
         buildSubMetric('搜索趋势90天', searchTrendTier.detail || '—', searchTrendTier, 5),
         buildSubMetric('季节性', seasonalityTier.detail || seasonalityTier.label, seasonalityTier, 5),
-        buildSubMetric('BSR波动', bsrVolatilityTier.label, bsrVolatilityTier, 5),
+        buildSubMetric('BSR波动', bsrVolatilityTier.detail || bsrVolatilityTier.label, bsrVolatilityTier, 5),
       ],
     },
   ]
+
+  const allSubMetrics = dimensions.flatMap((dimension) => dimension.subMetrics)
+  const dataSourceSummary = buildDataSourceSummary(allSubMetrics)
+  const hasHistory = historyRows.length > 0
 
   const rawTotalScore = Number(dimensions.reduce((sum, dimension) => sum + dimension.score, 0).toFixed(1))
 
@@ -567,6 +588,7 @@ export function buildAnalysis(keywordRow, searchRows) {
   return {
     keyword: keywordMeta.keyword,
     modelVersion: 'Amazon V3',
+    hasHistory,
     keywordMeta,
     market: {
       productCount: products.length,
@@ -590,6 +612,7 @@ export function buildAnalysis(keywordRow, searchRows) {
     verdict,
     veto,
     dimensions,
+    dataSourceSummary,
     risks,
     opportunities,
     top10,

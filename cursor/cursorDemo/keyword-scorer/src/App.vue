@@ -9,6 +9,7 @@ const uploadLoading = ref(false)
 const error = ref('')
 const keywordFile = ref(null)
 const searchFile = ref(null)
+const historyFile = ref(null)
 
 const radarRef = ref(null)
 const top10Ref = ref(null)
@@ -40,6 +41,7 @@ function onFileChange(event, type) {
   const file = event.target.files?.[0]
   if (type === 'keyword') keywordFile.value = file
   if (type === 'search') searchFile.value = file
+  if (type === 'history') historyFile.value = file
 }
 
 async function handleUpload() {
@@ -49,7 +51,11 @@ async function handleUpload() {
   uploadLoading.value = true
   error.value = ''
   try {
-    const nextAnalysis = await parseUploadedFiles(keywordFile.value, searchFile.value)
+    const nextAnalysis = await parseUploadedFiles(
+      keywordFile.value,
+      searchFile.value,
+      historyFile.value,
+    )
     // 先完成所有维度和总分的计算，再挂载到界面上
     analysis.value = nextAnalysis
   } catch (err) {
@@ -224,9 +230,9 @@ onBeforeUnmount(() => {
     <section class="upload-card">
       <div>
         <h2>上传新数据重新评分</h2>
-        <p>分别上传 KeywordMining 表和 Search 表，系统会按 Amazon V3 六维模型重新计算。</p>
+        <p>请上传 KeywordMining、Search、KeywordHistory 三份表格，系统按 Amazon V3 六维模型计算，并标注数据来源。</p>
       </div>
-      <div class="upload-grid">
+      <div class="upload-grid upload-grid-3">
         <label>
           <span>KeywordMining xlsx</span>
           <input type="file" accept=".xlsx,.xls" @change="onFileChange($event, 'keyword')" />
@@ -234,6 +240,10 @@ onBeforeUnmount(() => {
         <label>
           <span>Search xlsx</span>
           <input type="file" accept=".xlsx,.xls" @change="onFileChange($event, 'search')" />
+        </label>
+        <label>
+          <span>KeywordHistory xlsx</span>
+          <input type="file" accept=".xlsx,.xls" @change="onFileChange($event, 'history')" />
         </label>
         <button :disabled="uploadLoading" @click="handleUpload">
           {{ uploadLoading ? '解析中...' : '重新评分' }}
@@ -304,6 +314,29 @@ onBeforeUnmount(() => {
         </article>
       </section>
 
+      <section class="panel data-source-panel" v-if="analysis.dataSourceSummary?.length">
+        <div class="panel-title">
+          <h2>数据来源说明</h2>
+          <span>标明直接数据 / 计算 / 推算 / 估算</span>
+        </div>
+        <div class="source-legend">
+          <span class="source-badge source-direct">直接数据</span>
+          <span class="source-badge source-calculated">样本计算</span>
+          <span class="source-badge source-history">历史推算</span>
+          <span class="source-badge source-inferred">间接推算</span>
+          <span class="source-badge source-estimated">估算替代</span>
+        </div>
+        <div class="source-grid">
+          <article v-for="group in analysis.dataSourceSummary" :key="group.source" class="source-card">
+            <div class="source-card-head">
+              <span class="source-badge" :class="`source-${group.source}`">{{ group.label }}</span>
+              <small>{{ group.description }}</small>
+            </div>
+            <p>{{ group.metrics.join('、') }}</p>
+          </article>
+        </div>
+      </section>
+
       <section class="dimension-grid">
         <article class="dimension-card" v-for="dimension in analysis.dimensions" :key="dimension.key">
           <div class="dimension-head">
@@ -320,8 +353,12 @@ onBeforeUnmount(() => {
           <small>{{ dimension.detail }}</small>
           <ul class="submetric-list" v-if="dimension.subMetrics?.length">
             <li v-for="sub in dimension.subMetrics" :key="sub.name">
-              <span>{{ sub.name }} · {{ sub.value }}</span>
+              <span>
+                {{ sub.name }} · {{ sub.value }}
+                <em class="source-badge inline" :class="`source-${sub.source}`">{{ sub.sourceLabel }}</em>
+              </span>
               <em>{{ sub.tier }} · {{ sub.score }}/{{ sub.max }}</em>
+              <small v-if="sub.detail">{{ sub.detail }}</small>
             </li>
           </ul>
         </article>

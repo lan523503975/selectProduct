@@ -12,23 +12,29 @@ function firstSheetRows(workbook) {
   return XLSX.utils.sheet_to_json(sheet, { defval: '' })
 }
 
-export async function parseUploadedFiles(keywordFile, searchFile) {
-  if (!keywordFile || !searchFile) {
-    throw new Error('请同时上传 KeywordMining 表和 Search 表')
+export async function parseUploadedFiles(keywordFile, searchFile, historyFile) {
+  if (!keywordFile || !searchFile || !historyFile) {
+    throw new Error('请同时上传 KeywordMining、Search 和 KeywordHistory 三份表格')
   }
 
-  const [keywordWorkbook, searchWorkbook] = await Promise.all([
+  const [keywordWorkbook, searchWorkbook, historyWorkbook] = await Promise.all([
     readWorkbook(keywordFile),
     readWorkbook(searchFile),
+    readWorkbook(historyFile),
   ])
 
   const keywordRows = firstSheetRows(keywordWorkbook)
   const searchRows = firstSheetRows(searchWorkbook)
+  const historyRows = firstSheetRows(historyWorkbook)
   const keywordRow = keywordRows[0]
 
   if (!keywordRow?.关键词 || !searchRows.length) {
     throw new Error('Excel 格式不匹配，请确认上传的是卖家精灵 KeywordMining 和 Search 导出表')
   }
 
-  return buildAnalysis(keywordRow, searchRows)
+  if (!historyRows.length || !historyRows[0]?.周 || historyRows[0]?.周搜索量 === undefined) {
+    throw new Error('KeywordHistory 格式不匹配，请确认包含「周」和「周搜索量」字段')
+  }
+
+  return buildAnalysis(keywordRow, searchRows, historyRows)
 }
